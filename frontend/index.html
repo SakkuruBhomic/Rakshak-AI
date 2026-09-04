@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rakshak AI | Bio-Acoustic Intelligence & Forensic Trauma Suite</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/frontend/style.css">
+</head>
+<body>
+
+  <!-- Top Tactical Header -->
+  <header class="top-header">
+    <div class="brand-section">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">RAKSHAK-AI</div>
+        <div class="brand-tagline">BIO-ACOUSTIC INTELLIGENCE SUITE</div>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <!-- Scenario Selector -->
+      <select id="scenarioSelector" class="scenario-select" title="Switch Demonstration Scenario">
+        <option value="hinglish_coercion">Scenario 1: Hindi/Hinglish Coercion Distress Call</option>
+        <option value="physical_extortion">Scenario 2: Physical Assault & Trauma Spikes</option>
+        <option value="sample_local">Analyze Local Audio (translated_output.mp3)</option>
+      </select>
+
+      <button id="openUploadBtn" class="btn btn-secondary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Upload / Record
+      </button>
+
+      <button id="analyzeDefaultBtn" class="btn btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Run Audio AI
+      </button>
+
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        <span>LIVE ENGINE ACTIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Voice Intake Console (One-Click Real-Time Analysis) -->
+  <div class="live-intake-bar" style="background: rgba(12, 20, 36, 0.98); border-bottom: 1px solid #1e293b; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <!-- Direct Mic Recording Button -->
+      <button id="directMicBtn" class="btn btn-danger" style="box-shadow: 0 0 15px rgba(220, 38, 38, 0.35);">
+        <svg id="directMicIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <span id="directMicText">Record Live Mic</span>
+      </button>
+
+      <!-- Direct File Upload Button -->
+      <input type="file" id="directFileInput" accept="audio/*" style="display:none">
+      <button id="directUploadBtn" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>Upload Audio File</span>
+      </button>
+
+      <!-- Direct Sample Analysis Button -->
+      <button id="directTestBtn" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>Live Analyze Sample</span>
+      </button>
+
+      <!-- Language selector -->
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Dialect:</span>
+        <select id="directLanguage" class="scenario-select" style="padding: 6px 10px; font-size: 0.78rem;">
+          <option value="auto">Auto-Detect Dialect</option>
+          <option value="hi">Hindi (हिन्दी)</option>
+          <option value="en">English</option>
+          <option value="bn">Bengali (বাংলা)</option>
+          <option value="ta">Tamil (தமிழ்)</option>
+          <option value="te">Telugu (తెలుగు)</option>
+          <option value="mr">Marathi (मराठी)</option>
+          <option value="gu">Gujarati (ગુજરાતી)</option>
+          <option value="ur">Urdu (اردو)</option>
+          <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Live Status / Progress Banner -->
+    <div id="liveStatusBanner" style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--cyan); font-weight: 600;">
+      <span class="pulse-dot" style="background: var(--cyan); box-shadow: 0 0 8px var(--cyan);"></span>
+      <span id="liveStatusText">Live Voice Engine Ready: Awaiting Statement Input</span>
+    </div>
+  </div>
+
+  <!-- Audio Player & Timeline Scrubbing Bar -->
+  <div class="audio-player-bar">
+    <button id="playPauseBtn" class="player-btn" title="Play/Pause Audio">
+      <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      <svg id="pauseIcon" style="display:none" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+    </button>
+    <div class="timeline-scrubber-container">
+      <span id="currentTimeLabel" class="time-display">00:00</span>
+      <input type="range" id="audioScrubber" class="timeline-scrubber" min="0" max="100" value="0" step="0.1">
+      <span id="totalDurationLabel" class="time-display">02:34</span>
+    </div>
+    <audio id="globalAudioPlayer" src="/api/sample-audio" preload="metadata"></audio>
+  </div>
+
+  <!-- Navigation View Tabs -->
+  <nav class="view-tabs">
+    <button class="view-tab active" data-tab="tab-overview">
+      <span>1. BIO-ACOUSTIC RADAR & OVERVIEW</span>
+      <span class="badge">Screen 1</span>
+    </button>
+    <button class="view-tab" data-tab="tab-heatmaps">
+      <span>2. TIMELINE & KEYWORD HEATMAPS</span>
+      <span class="badge">Screen 2</span>
+    </button>
+    <button class="view-tab" data-tab="tab-stress">
+      <span>3. ACOUSTIC STRESS & TREMORS</span>
+      <span class="badge">Screen 3</span>
+    </button>
+    <button class="view-tab" data-tab="tab-duress">
+      <span>4. DURESS & OPERATOR COPILOT</span>
+      <span class="badge">Screen 4</span>
+    </button>
+    <button class="view-tab" data-tab="tab-allinone">
+      <span>ALL-IN-ONE COMMAND DESK</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Viewport -->
+  <main class="main-viewport">
+
+    <!-- ====================================================================
+         VIEW 1: BIO-ACOUSTIC INTELLIGENCE DASHBOARD (Image 1)
+         ==================================================================== -->
+    <div id="tab-overview" class="dashboard-view active">
+      <div class="dashboard-title-banner">
+        <h1 class="dashboard-main-title">BIO-ACOUSTIC INTELLIGENCE DASHBOARD</h1>
+        <div class="dashboard-subtitle">
+          <span class="highlight-green">Decode Voices.</span> 
+          <span class="highlight-yellow">Detect Threats.</span> 
+          <span class="highlight-red">Deliver Justice.</span>
+        </div>
+      </div>
+
+      <!-- Top Row: Module 1 (Radar) + Module 2 (Timeline Heatmap) -->
+      <div class="grid-2col">
+        <!-- Module 1: Radar Chart -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">1</span>
+            <div class="card-title-group">
+              <div class="card-title">BIO-ACOUSTIC RADAR / SPIDER CHART (MULTI-DIMENSIONAL PROFILE)</div>
+              <div class="card-desc">A 6-axis radar chart that creates an instant "fingerprint" of the caller's psychological state.</div>
+            </div>
+          </div>
+          <div class="radar-container">
+            <div class="radar-canvas-box">
+              <canvas id="radarCanvas"></canvas>
+            </div>
+            <div class="fingerprint-panel">
+              <div class="fingerprint-title">PSYCHOLOGICAL STATE FINGERPRINT</div>
+              <div class="brain-glow-wrap">
+                <!-- Glowing Brain Hologram SVG -->
+                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                  <path d="M50 15 C35 15, 20 28, 20 48 C20 62, 30 72, 40 76 L40 85 C40 88, 45 90, 50 90 C55 90, 60 88, 60 85 L60 76 C70 72, 80 62, 80 48 C80 28, 65 15, 50 15 Z" stroke="#c084fc" stroke-width="2" fill="rgba(168, 85, 247, 0.1)"></path>
+                  <path d="M35 35 Q45 25 50 35 T65 35" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"></path>
+                  <path d="M30 48 Q45 42 50 48 T70 48" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"></path>
+                  <path d="M35 60 Q45 55 50 62 T65 60" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"></path>
+                  <circle cx="50" cy="35" r="2.5" fill="#facc15"></circle>
+                  <circle cx="42" cy="50" r="2.5" fill="#ef4444"></circle>
+                  <circle cx="58" cy="50" r="2.5" fill="#ef4444"></circle>
+                </svg>
+              </div>
+              <div class="fingerprint-title" style="margin-top:2px; font-size:0.68rem;">Overall Stress Score</div>
+              <div class="circular-score-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="score-circle-bg" cx="50" cy="50" r="38"></circle>
+                  <circle id="radarStressCircle" class="score-circle-fill" cx="50" cy="50" r="38" stroke-dasharray="238.76" stroke-dashoffset="52"></circle>
+                </svg>
+                <div class="score-circle-text">
+                  <div id="radarStressValue" class="score-val">78%</div>
+                  <div class="score-lbl">HIGH STRESS</div>
+                </div>
+              </div>
+              <div class="load-indicators">
+                <div class="load-item"><span class="load-dot red"></span><span>Emotional Load: <b id="emotionalLoadLbl" style="color:#fff">High</b></span></div>
+                <div class="load-item"><span class="load-dot orange"></span><span>Cognitive Load: <b id="cognitiveLoadLbl" style="color:#fff">Elevated</b></span></div>
+                <div class="load-item"><span class="load-dot green"></span><span>Control Level: <b id="controlLevelLbl" style="color:#fff">Low</b></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 2: Timeline Trauma Heatmap -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">2</span>
+            <div class="card-title-group">
+              <div class="card-title">TIMELINE TRAUMA HEATMAP (SECOND-BY-SECOND DENSITY BAR)</div>
+              <div class="card-desc">Maps stress intensity (Green → Yellow → Red) to exact timestamps under the audio waveform.</div>
+            </div>
+          </div>
+          <div class="timeline-waveform-wrap">
+            <div style="font-size:0.7rem; font-weight:700; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase;">AUDIO WAVEFORM</div>
+            <canvas id="overviewWaveformCanvas" class="waveform-canvas"></canvas>
+            <div class="timeline-axis-labels">
+              <span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span>
+            </div>
+            <div style="font-size:0.7rem; font-weight:700; color:var(--text-muted); margin:10px 0 4px; text-transform:uppercase;">TRAUMA DENSITY HEATMAP</div>
+            <canvas id="overviewHeatmapCanvas" class="heatmap-bar-canvas"></canvas>
+            <div class="timeline-axis-labels">
+              <span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span>
+            </div>
+          </div>
+          <div class="heatmap-legend-row">
+            <span class="legend-pill low">LOW (0 - 30%)</span>
+            <span class="legend-pill mod">MODERATE (31 - 60%)</span>
+            <span class="legend-pill high">HIGH (61 - 80%)</span>
+            <span class="legend-pill ext">EXTREME (81 - 100%)</span>
+          </div>
+          <div class="key-insight-box">
+            <div class="insight-icon">⌖</div>
+            <div>
+              <strong style="color:var(--cyan); display:block; font-size:0.75rem;">KEY INSIGHT</strong>
+              <span id="overviewTraumaInsight">Exact trauma spikes detected between 02:15 - 03:20 and 04:10 - 04:45</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mid Row: Module 3 (Spectrogram) + Module 4 (Co-Occurrence Network) -->
+      <div class="grid-2col">
+        <!-- Module 3: Dual-Layer Spectrogram -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">3</span>
+            <div class="card-title-group">
+              <div class="card-title">DUAL-LAYER AUDIO SPECTROGRAM</div>
+              <div class="card-desc">Raw waveform with dynamic spectral pitch tracking (F0) and decibel intensity overlays.</div>
+            </div>
+          </div>
+          <div class="spectrogram-wrap">
+            <canvas id="spectrogramDualCanvas" class="spectrogram-canvas"></canvas>
+            <div class="spectrogram-overlays-legend">
+              <div class="spec-legend-item"><span class="spec-line-cyan"></span><span>Raw Waveform</span></div>
+              <div class="spec-legend-item"><span class="spec-line-purple"></span><span>F0 (Pitch Tracking)</span></div>
+              <div class="spec-legend-item"><span class="spec-line-orange"></span><span>Intensity (dB)</span></div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; font-size:0.75rem; color:var(--text-muted);">
+            <div style="background:rgba(17,28,51,0.5); padding:8px 12px; border-radius:6px; border:1px solid #1e293b;">
+              <strong style="color:#c084fc; display:block;">Pitch Tracking (F0)</strong>
+              <span>Tracks voice pitch variations in real time</span>
+            </div>
+            <div style="background:rgba(17,28,51,0.5); padding:8px 12px; border-radius:6px; border:1px solid #1e293b;">
+              <strong style="color:#fbbf24; display:block;">Intensity Overlay (dB)</strong>
+              <span>Visualizes loudness and energy changes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 4: Threat Co-Occurrence Network Graph -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">4</span>
+            <div class="card-title-group">
+              <div class="card-title">INTERACTIVE THREAT-WORD CO-OCCURRENCE MATRIX</div>
+              <div class="card-desc">Network graph connecting flagged threat words to risk categories.</div>
+            </div>
+          </div>
+          <div class="network-canvas-wrap">
+            <canvas id="networkGraphCanvas" class="network-canvas"></canvas>
+          </div>
+          <div class="network-pills">
+            <span class="net-pill coercion">COERCION</span>
+            <span class="net-pill violence">PHYSICAL VIOLENCE</span>
+            <span class="net-pill intimidation">INTIMIDATION</span>
+            <span class="net-pill suicide">SUICIDAL IDEATION</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Modules 5, 6, 7, 8 -->
+      <div class="grid-4col">
+        <!-- Module 5: Dynamic Language Tagging -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">5</span>
+            <div class="card-title-group">
+              <div class="card-title">DYNAMIC LANGUAGE TAGGING</div>
+              <div class="card-desc">Auto-detecting universal dialect status indicator.</div>
+            </div>
+          </div>
+          <div class="language-card-content">
+            <div class="globe-radar">
+              <!-- Holographic Rotating Globe SVG -->
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" stroke="rgba(0,242,254,0.3)" stroke-width="1.5" fill="rgba(2,132,199,0.06)"></circle>
+                <ellipse cx="50" cy="50" rx="42" ry="18" stroke="rgba(0,242,254,0.4)" stroke-width="1.2" fill="none"></ellipse>
+                <ellipse cx="50" cy="50" rx="18" ry="42" stroke="rgba(0,242,254,0.4)" stroke-width="1.2" fill="none"></ellipse>
+                <line x1="50" y1="8" x2="50" y2="92" stroke="rgba(0,242,254,0.2)" stroke-width="1"></line>
+                <line x1="8" y1="50" x2="92" y2="50" stroke="rgba(0,242,254,0.2)" stroke-width="1"></line>
+              </svg>
+            </div>
+            <div class="lang-details">
+              <div class="lang-tag-lbl">DETECTED LANGUAGE STATUS</div>
+              <div id="detectedLangName" class="lang-name-detected">HINGLISH (MIXED)</div>
+              <div class="confidence-pill">
+                <span>Confidence: <b id="langConfidenceVal">92%</b></span>
+                <span style="color:var(--cyan); margin-left:4px;">● AUTO-DETECTED</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:0.68rem; color:var(--text-dim); text-align:center; margin-top:6px;">100+ Languages & Dialects Supported</div>
+        </div>
+
+        <!-- Module 6: Dual-Transcript Interface -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">6</span>
+            <div class="card-title-group">
+              <div class="card-title">DUAL-TRANSCRIPT INTERFACE</div>
+              <div class="card-desc">Original spoken transcript with translated English side-by-side.</div>
+            </div>
+          </div>
+          <div class="dual-transcript-wrap">
+            <div>
+              <div class="transcript-col-header col-native">ORIGINAL (NATIVE SCRIPT)</div>
+              <div id="sourceTranscriptList">
+                <div class="transcript-line"><span class="line-time">00:12</span> मुझे जाने दो, प्लीज!</div>
+                <div class="transcript-line"><span class="line-time">00:18</span> मेरे पास पैसे नहीं हैं।</div>
+                <div class="transcript-line"><span class="line-time">00:24</span> मत मारो, मैं कुछ नहीं करूँगा।</div>
+                <div class="transcript-line"><span class="line-time">00:31</span> प्लीज, मुझे छोड़ दो...</div>
+              </div>
+            </div>
+            <div>
+              <div class="transcript-col-header col-english">TRANSLATED (ENGLISH)</div>
+              <div id="englishTranscriptList">
+                <div class="transcript-line"><span class="line-time">00:12</span> Please let me go!</div>
+                <div class="transcript-line"><span class="line-time">00:18</span> I don't have any money.</div>
+                <div class="transcript-line"><span class="line-time">00:24</span> Don't hit me, I won't do anything.</div>
+                <div class="transcript-line"><span class="line-time">00:31</span> Please, leave me...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 7: Bio-Acoustic Metric Cards -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">7</span>
+            <div class="card-title-group">
+              <div class="card-title">BIO-ACOUSTIC METRIC CARDS</div>
+              <div class="card-desc">Live readouts of key bio-acoustic indicators.</div>
+            </div>
+          </div>
+          <div class="metric-tile-grid">
+            <div class="metric-tile">
+              <div class="metric-tile-header">
+                <span>〰</span><span>HNR (dB)</span>
+              </div>
+              <div id="metricHnrVal" class="metric-tile-value">14.6</div>
+              <span class="metric-tile-badge badge-low">LOW</span>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-header">
+                <span>🔊</span><span>LOUDNESS (dB)</span>
+              </div>
+              <div id="metricLoudnessVal" class="metric-tile-value">-18.3</div>
+              <span class="metric-tile-badge badge-high">HIGH</span>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-header">
+                <span>⏱</span><span>SPEECH RATE (wpm)</span>
+              </div>
+              <div id="metricSpeechRateVal" class="metric-tile-value">132</div>
+              <span class="metric-tile-badge badge-elevated">ELEVATED</span>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-header">
+                <span>⏸</span><span>PAUSE DENSITY (p/m)</span>
+              </div>
+              <div id="metricPauseDensityVal" class="metric-tile-value">24</div>
+              <span class="metric-tile-badge badge-high">HIGH</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 8: Live Risk Summary -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">8</span>
+            <div class="card-title-group">
+              <div class="card-title">LIVE RISK SUMMARY</div>
+              <div class="card-desc">Real-time overall risk assessment with key drivers.</div>
+            </div>
+          </div>
+          <div class="live-risk-wrap">
+            <div class="risk-gauge-box">
+              <svg viewBox="0 0 100 100" style="transform: rotate(-90deg); width:100%; height:100%;">
+                <circle class="score-circle-bg" cx="50" cy="50" r="38"></circle>
+                <circle id="summaryRiskCircle" class="score-circle-fill" cx="50" cy="50" r="38" stroke-dasharray="238.76" stroke-dashoffset="43"></circle>
+              </svg>
+              <div class="score-circle-text">
+                <div id="summaryRiskVal" class="score-val" style="color:var(--red);">82%</div>
+                <div class="score-lbl">HIGH RISK</div>
+              </div>
+            </div>
+            <div class="drivers-list">
+              <div style="font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">RISK DRIVERS</div>
+              <div class="driver-item"><span class="driver-dot critical"></span><span>High Trauma Spike Detected</span></div>
+              <div class="driver-item"><span class="driver-dot high"></span><span>Suppressed Speech Patterns</span></div>
+              <div class="driver-item"><span class="driver-dot critical"></span><span>Coercive Language Detected</span></div>
+              <div class="driver-item"><span class="driver-dot high"></span><span>Elevated Pause Density</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 2: VISUALIZING IMPACT. EMPOWERING RESPONSE. (Image 2)
+         ==================================================================== -->
+    <div id="tab-heatmaps" class="dashboard-view">
+      <div class="dashboard-title-banner">
+        <h1 class="dashboard-main-title">VISUALIZING IMPACT. EMPOWERING RESPONSE.</h1>
+        <div class="dashboard-subtitle">Heatmaps that transform data into actionable insights</div>
+      </div>
+
+      <!-- SVI STRESS HEATMAP ACROSS TIME -->
+      <div class="heatmap-feature-layout">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">1</span>
+            <div class="card-title-group">
+              <div class="card-title">SVI STRESS HEATMAP ACROSS TIME</div>
+              <div class="card-desc">Timeline Density Map: A continuous 2D heatmap bar displayed under the audio timeline (Green → Yellow → Red) showing stress intensity over time.</div>
+            </div>
+          </div>
+
+          <div style="background:rgba(17,28,51,0.5); padding:12px; border-radius:8px; border:1px solid #1e293b; margin-bottom:14px; font-size:0.8rem;">
+            <b style="color:var(--cyan);">What it shows:</b> Judges and responders can visually spot the exact second the victim experienced a trauma spike during the call.
+          </div>
+
+          <div class="timeline-waveform-wrap">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">AUDIO TIMELINE</span>
+              <span id="pinnedSpikeSecond" style="font-family:var(--font-mono); font-size:0.75rem; color:#f87171; font-weight:700;">04:35</span>
+            </div>
+            <canvas id="tab2WaveformCanvas" class="waveform-canvas"></canvas>
+            <div class="timeline-axis-labels">
+              <span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span><span>06:00</span><span>07:00</span><span>08:00</span>
+            </div>
+
+            <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); margin:12px 0 6px; text-transform:uppercase;">SVI STRESS HEATMAP</div>
+            <canvas id="tab2HeatmapCanvas" class="heatmap-bar-canvas" style="height:48px;"></canvas>
+            <div class="timeline-axis-labels">
+              <span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span><span>06:00</span><span>07:00</span><span>08:00</span>
+            </div>
+          </div>
+
+          <div class="time-spike-banner">
+            <div>
+              <span style="font-size:0.72rem; text-transform:uppercase; color:#f87171; font-weight:700; display:block;">TRAUMA SPIKE DETECTED</span>
+              <span class="spike-highlight-text">Exact Second: <span id="exactSpikeSecText">04:35</span></span>
+            </div>
+            <div class="status-badge" style="background:rgba(239,68,68,0.2); color:#f87171; border-color:rgba(239,68,68,0.4);">
+              <span>CRITICAL ACOUSTIC ANOMALY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Benefits Sidebar -->
+        <div class="benefits-box">
+          <div class="benefits-title">KEY BENEFITS</div>
+          <div class="benefit-row">
+            <div class="benefit-icon">🎯</div>
+            <div>
+              <strong style="color:#fff; display:block;">Pinpoint the exact moment</strong>
+              <span>Isolates the micro-interval of extreme caller trauma spike.</span>
+            </div>
+          </div>
+          <div class="benefit-row">
+            <div class="benefit-icon">👁</div>
+            <div>
+              <strong style="color:#fff; display:block;">Enhances speed & accuracy</strong>
+              <span>Enables forensic teams to review key segments 10x faster.</span>
+            </div>
+          </div>
+          <div class="benefit-row">
+            <div class="benefit-icon">⚖</div>
+            <div>
+              <strong style="color:#fff; display:block;">Strengthens fairness & transparency</strong>
+              <span>Provides verifiable objective acoustic evidence for judicial panels.</span>
+            </div>
+          </div>
+          <div class="benefit-row">
+            <div class="benefit-icon">🛡</div>
+            <div>
+              <strong style="color:#fff; display:block;">Supports better decision making</strong>
+              <span>Informs emergency dispatch routing and psychological protocols.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MULTILINGUAL KEYWORD DENSITY HEATMAP MATRIX -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-num-badge">2</span>
+          <div class="card-title-group">
+            <div class="card-title">MULTILINGUAL KEYWORD DENSITY HEATMAP</div>
+            <div class="card-desc">A Visual Matrix of Threat Categories highlighting which threat words dominated each time segment.</div>
+          </div>
+        </div>
+
+        <div class="matrix-card-layout">
+          <!-- Why It Matters -->
+          <div class="why-it-matters-box">
+            <div style="font-family:var(--font-heading); font-weight:700; color:var(--cyan); font-size:0.85rem; text-transform:uppercase;">WHY IT MATTERS</div>
+            <div style="display:flex; gap:8px;">
+              <span>🔍</span>
+              <div><b style="color:#fff">Quickly identifies dominant patterns:</b> Spot escalation from financial coercion to physical violence.</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <span>🌐</span>
+              <div><b style="color:#fff">Supports multilingual analysis:</b> Cross-correlates native vocabulary with translated English taxonomy.</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <span>📖</span>
+              <div><b style="color:#fff">Enhances narrative understanding:</b> Traces how caller threats evolved during the conversation.</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <span>⚡</span>
+              <div><b style="color:#fff">Empowers stronger investigation:</b> Delivers court-admissible chronologies for law enforcement.</div>
+            </div>
+          </div>
+
+          <!-- Heatmap Matrix Table -->
+          <div>
+            <div class="matrix-table-wrap">
+              <table id="keywordDensityTable" class="matrix-table">
+                <!-- Dynamically generated rows -->
+              </table>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:0.72rem; color:var(--text-muted);">
+              <span>LOW INTENSITY</span>
+              <div style="width:200px; height:8px; border-radius:4px; background:linear-gradient(90deg, #10b981, #facc15, #f97316, #ef4444);"></div>
+              <span>HIGH INTENSITY</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 3: ACOUSTIC STRESS & TRAUMA DETECTOR (Image 3)
+         ==================================================================== -->
+    <div id="tab-stress" class="dashboard-view">
+      <div class="dashboard-title-banner">
+        <h1 class="dashboard-main-title">ACOUSTIC STRESS & TRAUMA DETECTOR</h1>
+        <div class="dashboard-subtitle">Advanced Voice Analysis Dashboard</div>
+      </div>
+
+      <!-- Top Telemetry Bar -->
+      <div class="top-telemetry-banner">
+        <div class="telemetry-stat">
+          <div class="stat-icon">⏱</div>
+          <div class="stat-meta">
+            <span class="stat-label">DURATION</span>
+            <span id="telDurationVal" class="stat-value">02:34</span>
+          </div>
+        </div>
+        <div class="telemetry-stat">
+          <div class="stat-icon">💬</div>
+          <div class="stat-meta">
+            <span class="stat-label">WORDS</span>
+            <span id="telWordsVal" class="stat-value">412</span>
+          </div>
+        </div>
+        <div class="telemetry-stat">
+          <div class="stat-icon">🎙</div>
+          <div class="stat-meta">
+            <span class="stat-label">SPEAKING TIME</span>
+            <span id="telSpeakingVal" class="stat-value">01:42 (66%)</span>
+          </div>
+        </div>
+        <div class="telemetry-stat">
+          <div class="stat-icon">⏸</div>
+          <div class="stat-meta">
+            <span class="stat-label">PAUSE TIME</span>
+            <span id="telPauseVal" class="stat-value">00:52 (34%)</span>
+          </div>
+        </div>
+        <div class="stat-badge-risk">
+          <span>⚠️ STRESS LEVEL: HIGH (Risk Detected)</span>
+        </div>
+      </div>
+
+      <!-- 3 Columns: Pause Analysis, Jitter/Shimmer, Loudness Spikes -->
+      <div class="grid-3col">
+        <!-- 1. Speech Pause & Hesitation Analysis -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">1</span>
+            <div class="card-title-group">
+              <div class="card-title">SPEECH PAUSE & HESITATION ANALYSIS</div>
+              <div class="card-desc">Quantifies vocal freeze reactions and hesitation indicators.</div>
+            </div>
+          </div>
+          <div class="pause-metrics-subgrid">
+            <div class="pause-metric-card">
+              <div class="meta">SPEECH-TO-SILENCE</div>
+              <div id="speechRatioNum" class="val">1.92 : 1</div>
+              <div id="speechRatioSub" class="meta">Speech 66% | Silence 34%</div>
+            </div>
+            <div class="pause-metric-card">
+              <div class="meta">AVG SILENCE DURATION</div>
+              <div id="avgSilenceVal" class="val">1.28 sec</div>
+              <div class="meta" style="color:#f87171">↑ High (Normal: 0.2-0.6s)</div>
+            </div>
+            <div class="pause-metric-card">
+              <div class="meta">LONG PAUSES (> 2 sec)</div>
+              <div id="longPausesVal" class="val">14</div>
+              <div class="meta" style="color:#fb923c">↑ Elevated (Normal: < 5)</div>
+            </div>
+          </div>
+
+          <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">SPEECH TIMELINE (Speech vs Silence)</div>
+          <div id="speechTimelineSegmented" class="segmented-timeline-bar">
+            <!-- Segmented speech and silence divs rendered via JS -->
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text-muted); margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; background:#0284c7; border-radius:2px;"></span> Speech</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; background:#f97316; border-radius:2px;"></span> Silence / Pause</div>
+          </div>
+
+          <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-top:8px;">SILENCE DURATION OVER TIME</div>
+          <canvas id="silenceDurationCanvas" style="width:100%; height:130px; border-radius:6px; display:block;"></canvas>
+        </div>
+
+        <!-- 2. Jitter & Shimmer (Micro-Tremors) -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">2</span>
+            <div class="card-title-group">
+              <div class="card-title">JITTER & SHIMMER (MICRO-TREMORS)</div>
+              <div class="card-desc">Cycle-to-cycle frequency and amplitude perturbations under acute fear.</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="pause-metric-card">
+              <div class="meta">JITTER (Frequency Instability)</div>
+              <div id="jitterPctVal" class="val" style="color:#f87171">2.35%</div>
+              <div class="meta" style="color:#f87171">↑ High (Normal: < 1%)</div>
+            </div>
+            <div class="pause-metric-card">
+              <div class="meta">SHIMMER (Amplitude Instability)</div>
+              <div id="shimmerPctVal" class="val" style="color:#f87171">6.48%</div>
+              <div class="meta" style="color:#f87171">↑ High (Normal: < 3%)</div>
+            </div>
+          </div>
+
+          <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; text-align:center;">MICRO-TREMOR LEVEL</div>
+          <div class="gauge-canvas-box">
+            <canvas id="tremorGaugeCanvas" style="width:100%; height:110px;"></canvas>
+          </div>
+
+          <div class="waveform-compare-grid">
+            <div class="waveform-box">
+              <div class="waveform-box-label label-stable">NORMAL VOICE (Stable)</div>
+              <canvas id="stableWaveCanvas" style="width:100%; height:55px;"></canvas>
+            </div>
+            <div class="waveform-box">
+              <div class="waveform-box-label label-unstable">DETECTED VOICE (Unstable)</div>
+              <canvas id="unstableWaveCanvas" style="width:100%; height:55px;"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Loudness Spikes (Decibel Fluctuations) -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-num-badge">3</span>
+            <div class="card-title-group">
+              <div class="card-title">LOUDNESS SPIKES (DECIBEL FLUCTUATIONS)</div>
+              <div class="card-desc">Monitors decibel variance and emotional suppression outbursts.</div>
+            </div>
+          </div>
+          <div class="pause-metric-card" style="margin-bottom:14px;">
+            <div class="meta">LOUDNESS VARIABILITY (dB)</div>
+            <div id="loudnessVarVal" class="val" style="color:#fbbf24">18.7 dB</div>
+            <div class="meta" style="color:#f87171">↑ High (Normal: 3 - 8 dB)</div>
+          </div>
+
+          <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">LOUDNESS OVER TIME</div>
+          <canvas id="loudnessSpikesCanvas" style="width:100%; height:160px; border-radius:6px; display:block;"></canvas>
+          <div style="display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text-muted); margin-top:8px;">
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:2px; background:#facc15;"></span> Normal Loudness</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; background:#ef4444; border-radius:50%;"></span> Loudness Spike</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Summary Insights, Combined Score, Feature Contribution, Interpretation Guide -->
+      <div class="bottom-detector-grid">
+        <div class="card">
+          <div style="font-family:var(--font-heading); font-size:0.85rem; font-weight:700; color:var(--cyan); margin-bottom:10px; text-transform:uppercase;">SUMMARY INSIGHTS</div>
+          <div id="detectorSummaryList" style="display:flex; flex-direction:column; gap:8px; font-size:0.76rem; color:#cbd5e1;">
+            <div>✓ High ratio of silence suggests hesitation and fear.</div>
+            <div>✓ Prolonged pauses detected, indicating emotional distress.</div>
+            <div>✓ Elevated jitter & shimmer show micro-tremors due to stress.</div>
+            <div>✓ Loudness spikes reflect sudden emotional outbursts / suppression.</div>
+            <div style="color:#f87171; font-weight:700;">✓ Overall Acoustic Stress Level: HIGH</div>
+          </div>
+        </div>
+
+        <div class="card" style="text-align:center;">
+          <div style="font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:#fff; margin-bottom:6px; text-transform:uppercase;">COMBINED ACOUSTIC STRESS SCORE</div>
+          <div class="gauge-canvas-box">
+            <canvas id="combinedStressGaugeCanvas" style="width:100%; height:110px;"></canvas>
+          </div>
+          <div id="combinedStressScoreText" style="font-family:var(--font-heading); font-size:1.4rem; font-weight:700; color:#f87171;">78 /100</div>
+          <div style="font-size:0.72rem; font-weight:700; color:#f87171; text-transform:uppercase;">HIGH RISK</div>
+        </div>
+
+        <div class="card">
+          <div style="font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:#fff; margin-bottom:10px; text-transform:uppercase;">FEATURE CONTRIBUTION</div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:0.75rem;">
+            <div style="display:flex; justify-content:space-between;"><span>🔵 Pause & Hesitation</span><b>30%</b></div>
+            <div style="display:flex; justify-content:space-between;"><span>🟢 Jitter (Micro-tremors)</span><b>25%</b></div>
+            <div style="display:flex; justify-content:space-between;"><span>🟡 Shimmer Instability</span><b>20%</b></div>
+            <div style="display:flex; justify-content:space-between;"><span>🟠 Loudness Spikes</span><b>25%</b></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:#fff; margin-bottom:10px; text-transform:uppercase;">INTERPRETATION GUIDE</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:0.72rem;">
+            <div style="display:flex; align-items:center; gap:6px;"><span class="load-dot green"></span><span><b>0 - 24: Low Risk</b> (Normal variations)</span></div>
+            <div style="display:flex; align-items:center; gap:6px;"><span class="load-dot orange" style="background:#eab308;"></span><span><b>25 - 49: Moderate Risk</b> (Mild stress)</span></div>
+            <div style="display:flex; align-items:center; gap:6px;"><span class="load-dot orange"></span><span><b>50 - 74: High Risk</b> (Significant stress)</span></div>
+            <div style="display:flex; align-items:center; gap:6px;"><span class="load-dot red"></span><span><b>75 - 100: Critical Risk</b> (Acute trauma)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 4: SMARTER CALLS. SAFER OUTCOMES. (DURESS & COPILOT) (Image 4)
+         ==================================================================== -->
+    <div id="tab-duress" class="dashboard-view">
+      <div class="dashboard-title-banner">
+        <h1 class="dashboard-main-title">SMARTER CALLS. SAFER OUTCOMES.</h1>
+        <div class="dashboard-subtitle">Advanced Detection. Real-Time Support. Forensic-Grade Evidence.</div>
+      </div>
+
+      <!-- 1. DURESS / STEALTH MODE DETECTION -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header">
+          <span class="card-num-badge">1</span>
+          <div class="card-title-group">
+            <div class="card-title">DURESS / STEALTH MODE DETECTION</div>
+            <div class="card-desc">Detects hidden coercion. Alerts silently. Protects the victim.</div>
+          </div>
+        </div>
+
+        <div class="duress-layout-grid">
+          <div>
+            <div class="duress-ill-card">
+              <div class="duress-ill-avatar">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5Z"></path>
+                  <path d="M19 11v1a7 7 0 0 1-14 0v-1"></path>
+                  <path d="M16 19h6"></path>
+                  <path d="M19 16v6"></path>
+                </svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-heading); font-size:0.85rem; font-weight:700; color:#f87171; margin-bottom:4px; text-transform:uppercase;">WHAT IS DETECTED?</div>
+                <div style="font-size:0.78rem; color:#cbd5e1;">The system identifies suppressed speech patterns and forced whisper dynamics indicating the caller may be under coercion.</div>
+              </div>
+            </div>
+
+            <div class="duress-indicators-grid">
+              <div class="duress-ind-card">
+                <span class="ind-icon">🔊</span>
+                <div class="ind-text">
+                  <strong>LOW VOLUME</strong>
+                  <span id="indLowVolDesc">Abnormally soft speech detected</span>
+                </div>
+              </div>
+              <div class="duress-ind-card">
+                <span class="ind-icon">〰</span>
+                <div class="ind-text">
+                  <strong>HIGH JITTER</strong>
+                  <span id="indHighJitDesc">Irregular voice instability</span>
+                </div>
+              </div>
+              <div class="duress-ind-card">
+                <span class="ind-icon">⏸</span>
+                <div class="ind-text">
+                  <strong>RAPID PAUSES</strong>
+                  <span id="indRapidPauDesc">Short, frequent pauses in speech</span>
+                </div>
+              </div>
+              <div class="duress-ind-card">
+                <span class="ind-icon">🔒</span>
+                <div class="ind-text">
+                  <strong>SUPPRESSED SPEECH</strong>
+                  <span id="indSuppSpeechDesc">Overall pattern matches duress indicators</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Duress Score & Voice Comparison -->
+          <div style="background:rgba(17,28,51,0.5); padding:16px; border-radius:12px; border:1px solid #1e293b;">
+            <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:14px;">
+              <div style="text-align:center;">
+                <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">DURESS SCORE</div>
+                <div class="circular-score-ring" style="width:96px; height:96px; margin:auto;">
+                  <svg viewBox="0 0 100 100">
+                    <circle class="score-circle-bg" cx="50" cy="50" r="38"></circle>
+                    <circle id="duressScoreRing" class="score-circle-fill" cx="50" cy="50" r="38" stroke-dasharray="238.76" stroke-dashoffset="31"></circle>
+                  </svg>
+                  <div class="score-circle-text">
+                    <div id="duressScoreVal" class="score-val" style="color:var(--red);">87%</div>
+                    <div class="score-lbl">HIGH RISK</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comparison Bars -->
+              <div style="flex:1; margin-left:24px;">
+                <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">VOICE PATTERN COMPARISON</div>
+                <div style="display:flex; gap:12px; font-size:0.68rem; margin-bottom:8px;">
+                  <span style="color:#34d399">■ Normal Speech</span>
+                  <span style="color:#f87171">■ Suppressed Speech</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px; font-size:0.72rem;">
+                  <div>
+                    <div style="display:flex; justify-content:space-between;"><span>Volume</span><span id="cmpVolText" style="color:#f87171">Suppressed (28%)</span></div>
+                    <div style="height:6px; background:#1e293b; border-radius:3px; overflow:hidden;">
+                      <div id="cmpVolBar" style="width:28%; height:100%; background:#ef4444;"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display:flex; justify-content:space-between;"><span>Jitter</span><span id="cmpJitText" style="color:#f87171">Elevated (84%)</span></div>
+                    <div style="height:6px; background:#1e293b; border-radius:3px; overflow:hidden;">
+                      <div id="cmpJitBar" style="width:84%; height:100%; background:#ef4444;"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display:flex; justify-content:space-between;"><span>Pauses</span><span id="cmpPauText" style="color:#f87171">Frequent (78%)</span></div>
+                    <div style="height:6px; background:#1e293b; border-radius:3px; overflow:hidden;">
+                      <div id="cmpPauBar" style="width:78%; height:100%; background:#ef4444;"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display:flex; justify-content:space-between;"><span>Speech Clarity</span><span id="cmpClaText" style="color:#f87171">Compromised (32%)</span></div>
+                    <div style="height:6px; background:#1e293b; border-radius:3px; overflow:hidden;">
+                      <div id="cmpClaBar" style="width:32%; height:100%; background:#f59e0b;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="duressAlertBox" class="duress-alert-banner">
+              <span>⚠️</span>
+              <span id="duressAlertText">POSSIBLE COERCION DETECTED: Silent alert sent to law enforcement. Caller not notified.</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center; font-size:0.72rem; color:var(--text-dim); margin-top:8px;">
+          ✓ Enables discreet intervention by authorities without alarming the victim or the abuser.
+        </div>
+      </div>
+
+      <!-- 2. REAL-TIME OPERATOR COPILOT (COUNSELLOR ASSIST) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-num-badge">2</span>
+          <div class="card-title-group">
+            <div class="card-title">REAL-TIME OPERATOR COPILOT (COUNSELLOR ASSIST)</div>
+            <div class="card-desc">Live psychological guidance. Better conversations. Safer outcomes.</div>
+          </div>
+        </div>
+
+        <!-- HOW IT WORKS PIPELINE -->
+        <div class="copilot-pipeline-bar">
+          <div class="pipeline-step">
+            <span style="font-size:1.1rem;">🎧</span>
+            <span>Operator listens to the call</span>
+          </div>
+          <span class="pipeline-arrow">➔</span>
+          <div class="pipeline-step">
+            <span style="font-size:1.1rem;">🧠</span>
+            <span>AI analyzes voice in real time</span>
+          </div>
+          <span class="pipeline-arrow">➔</span>
+          <div class="pipeline-step">
+            <span style="font-size:1.1rem;">💬</span>
+            <span>Live prompts appear</span>
+          </div>
+          <span class="pipeline-arrow">➔</span>
+          <div class="pipeline-step">
+            <span style="font-size:1.1rem;">👤</span>
+            <span>Operator responds with empathy</span>
+          </div>
+        </div>
+
+        <!-- LIVE CALL HEADER -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(17,28,51,0.8); padding:10px 16px; border-radius:8px; margin-bottom:18px; border:1px solid #1e293b;">
+          <div style="font-family:var(--font-heading); font-size:0.92rem; font-weight:700;">
+            Call ID: <span id="copilotCallId" style="color:var(--cyan);">14566</span>
+          </div>
+          <div class="status-badge" style="background:rgba(16,185,129,0.2); color:#34d399;">
+            <span class="pulse-dot"></span>
+            <span>+ LIVE -</span>
+          </div>
+          <div style="font-family:var(--font-mono); font-size:0.85rem;">
+            Call Duration: <b id="copilotCallDuration" style="color:#fff;">02:47</b>
+          </div>
+        </div>
+
+        <!-- 3-DECK PANELS -->
+        <div class="copilot-3deck">
+          <!-- Live Insights -->
+          <div class="card" style="padding:16px;">
+            <div style="font-family:var(--font-heading); font-size:0.8rem; font-weight:700; color:var(--cyan); margin-bottom:12px; text-transform:uppercase;">LIVE INSIGHTS</div>
+            <div class="insights-list">
+              <div class="insight-item"><span>Emotion:</span><b id="insEmotionVal" style="color:#f87171">Fear</b></div>
+              <div class="insight-item"><span>Stress Level:</span><b id="insStressVal" style="color:#f87171">High</b></div>
+              <div class="insight-item"><span>Trauma Spike:</span><b id="insTraumaVal" style="color:#f87171">High</b></div>
+              <div class="insight-item"><span>Duress Risk:</span><b id="insDuressVal" style="color:#fb923c">Elevated</b></div>
+            </div>
+          </div>
+
+          <!-- Voice Stability -->
+          <div class="card" style="padding:16px; text-align:center;">
+            <div style="font-family:var(--font-heading); font-size:0.8rem; font-weight:700; color:var(--cyan); margin-bottom:12px; text-transform:uppercase;">VOICE STABILITY</div>
+            <div class="gauge-canvas-box">
+              <canvas id="voiceStabilityGaugeCanvas" style="width:100%; height:110px;"></canvas>
+            </div>
+            <div id="voiceStabilityPctVal" style="font-family:var(--font-heading); font-size:1.4rem; font-weight:700; color:#f87171;">72%</div>
+            <div id="voiceStabilityLbl" style="font-size:0.75rem; font-weight:700; color:#f87171; text-transform:uppercase;">Unstable</div>
+          </div>
+
+          <!-- AI Copilot Suggestions -->
+          <div class="card" style="padding:16px;">
+            <div style="font-family:var(--font-heading); font-size:0.8rem; font-weight:700; color:var(--cyan); margin-bottom:12px; text-transform:uppercase;">AI COPILOT SUGGESTIONS</div>
+            <div id="copilotSuggestionsList">
+              <div class="copilot-suggestion-card critical">
+                <div class="card-icon-pill">⚠️</div>
+                <div class="sugg-content">
+                  <h4>High trauma spike detected</h4>
+                  <p>"Ask closed Yes/No questions to protect victim safety."</p>
+                </div>
+              </div>
+              <div class="copilot-suggestion-card warning">
+                <div class="card-icon-pill">🗣</div>
+                <div class="sugg-content">
+                  <h4>Victim sounds fearful</h4>
+                  <p>"Reassure the caller. Use calm, slow and short sentences."</p>
+                </div>
+              </div>
+              <div class="copilot-suggestion-card info">
+                <div class="card-icon-pill">🤝</div>
+                <div class="sugg-content">
+                  <h4>Build safety & trust</h4>
+                  <p>"Let the caller speak. Validate their feelings."</p>
+                </div>
+              </div>
+              <div class="copilot-suggestion-card coercion">
+                <div class="card-icon-pill">🔒</div>
+                <div class="sugg-content">
+                  <h4>Possible coercion signaled</h4>
+                  <p>"Keep conversation open-ended. Do not confront the abuser."</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center; font-size:0.72rem; color:var(--text-dim); margin-top:14px;">
+          💡 Empowers operators with the right words at the right time.
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 5: ALL-IN-ONE COMMAND DESK (Unified Overview)
+         ==================================================================== -->
+    <div id="tab-allinone" class="dashboard-view">
+      <div class="dashboard-title-banner">
+        <h1 class="dashboard-main-title">FORENSIC TRIAGE COMMAND CENTER</h1>
+        <div class="dashboard-subtitle">Synchronized 360° Bio-Acoustic & Psychological Evidence Matrix</div>
+      </div>
+      <div id="unifiedContainer">
+        <!-- Will display a composite matrix of all key telemetry in a unified master control view -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Upload / Mic Modal -->
+  <div id="uploadModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">Live Voice Analysis Intake</div>
+        <button id="closeModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <!-- File Upload Zone -->
+      <div id="dropZone" class="upload-zone">
+        <input type="file" id="audioFileInput" accept="audio/*" style="display:none">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" style="margin-bottom:8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <div style="font-weight:600; color:#fff; font-size:0.9rem;">Upload Audio Statement</div>
+        <div id="selectedFileLabel" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Supports WAV, MP3, OGG, WEBM, M4A, AAC (Max 25 MB)</div>
+      </div>
+
+      <div style="text-align:center; font-size:0.75rem; color:var(--text-dim); margin-bottom:12px;">— OR RECORD LIVE MICROPHONE —</div>
+
+      <!-- Mic Recording Zone -->
+      <div class="mic-record-zone">
+        <button id="modalMicBtn" class="mic-btn-circle" title="Click to start/stop recording">🎙</button>
+        <div>
+          <strong id="modalMicStatus" style="display:block; font-size:0.85rem; color:#fff;">Start Microphone</strong>
+          <span id="modalMicTimer" style="font-size:0.74rem; color:var(--text-muted);">Click to record live statement</span>
+        </div>
+      </div>
+
+      <!-- Language selector -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:0.74rem; color:var(--text-muted); margin-bottom:6px; font-weight:600;">Caller Language Hint</label>
+        <select id="modalLangHint" class="scenario-select" style="width:100%;">
+          <option value="auto">Auto-detect dialect</option>
+          <option value="hi">Hindi</option>
+          <option value="en">English</option>
+          <option value="bn">Bengali</option>
+          <option value="ta">Tamil</option>
+          <option value="te">Telugu</option>
+          <option value="mr">Marathi</option>
+          <option value="gu">Gujarati</option>
+          <option value="ur">Urdu</option>
+        </select>
+      </div>
+
+      <div id="modalErrorMsg" style="display:none; padding:8px 12px; background:rgba(239,68,68,0.2); border:1px solid #ef4444; border-radius:6px; color:#fca5a5; font-size:0.75rem; margin-bottom:12px;"></div>
+
+      <button id="submitAnalysisBtn" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;" disabled>
+        Analyze Audio Statement
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer Status -->
+  <footer class="footer-bar">
+    <div>Rakshak-AI | Real-Time Stress & Trauma Assessment Module</div>
+    <div>⚖ This is a decision-support / triage aid, not a clinical diagnostic tool.</div>
+  </footer>
+
+  <script src="/frontend/spectrogram.js"></script>
+  <script src="/frontend/app.js"></script>
+</body>
+</html>

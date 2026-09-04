@@ -1,413 +1,166 @@
-import os
 import sqlite3
-import librosa
-import numpy as np
+from datetime import datetime
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
 import plotly.graph_objects as go
 import streamlit as st
-import whisper
 
-# ---------------------------------------------------------
-# 1. PAGE CONFIGURATION & THEME
-# ---------------------------------------------------------
-st.set_page_config(
-    page_title="Rakshak-AI | Emergency Triage Portal",
-    page_icon="🚨",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+from logic import load_speech_model, process_victim_voice
 
-# Custom Styling
-st.markdown(
-    """
-    <style>
-    .main { background-color: #0e1117; }
-    .stMetric { background-color: #1f2937; padding: 15px; border-radius: 10px; }
-    .risk-critical { background-color: #7f1d1d; color: white; padding: 15px; border-radius: 10px; border-left: 6px solid #ef4444; }
-    .risk-high { background-color: #7c2d12; color: white; padding: 15px; border-radius: 10px; border-left: 6px solid #f97316; }
-    .risk-moderate { background-color: #713f12; color: white; padding: 15px; border-radius: 10px; border-left: 6px solid #eab308; }
-    .risk-low { background-color: #14532d; color: white; padding: 15px; border-radius: 10px; border-left: 6px solid #22c55e; }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
+APP_DIR = Path(__file__).parent
+DB_PATH = APP_DIR / "rakshak_triage.db"
+LANGUAGES = {
+    "Auto-detect": "auto", "English": "en", "Hindi": "hi", "Bengali": "bn",
+    "Tamil": "ta", "Telugu": "te", "Marathi": "mr", "Gujarati": "gu",
+    "Kannada": "kn", "Malayalam": "ml", "Punjabi": "pa", "Urdu": "ur",
+    "Odia": "or", "Assamese": "as", "Nepali": "ne",
+}
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+st.set_page_config(page_title="Rakshak AI | Response Desk", page_icon="R", layout="wide")
+st.markdown("""
+<style>
+:root { --navy:#102a43; --ink:#243b53; --muted:#627d98; --line:#d9e2ec; --mint:#0f766e; --gold:#d97706; }
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+.stApp { background:radial-gradient(circle at 88% 8%,#d9f3ef 0,transparent 25%),linear-gradient(135deg,#f4f7f9,#fffaf0); color:var(--ink); font-family:'DM Sans',sans-serif; }
+[data-testid="stHeader"] { background:transparent; }
+[data-testid="stSidebar"] { background:linear-gradient(180deg,var(--navy),#173f5f); }
+[data-testid="stSidebar"] * { color:#f0f7fa; }
+[data-testid="stSidebar"] hr { border-color:#486581; }
+h1,h2,h3 { color:var(--navy); letter-spacing:0; font-family:'Space Grotesk',sans-serif; }
+.eyebrow,.panel-title { color:var(--mint); font-size:.74rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+.hero { background:linear-gradient(120deg,var(--navy),#173f5f); color:white; padding:30px 34px; border-radius:18px; margin:10px 0 22px; box-shadow:0 16px 35px #102a4325; }
+.hero h1 { color:white; font-size:2.3rem; margin:5px 0; }
+.hero p { color:#c9d8e7; max-width:680px; margin:0; }
+.panel { background:#ffffffcc; border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:0 10px 28px #102a4312; }
+.panel-title { color:var(--muted); font-size:.72rem; margin-bottom:10px; }
+.risk { padding:18px 20px; border-left:6px solid var(--mint); border-radius:10px; background:#d9f3ef; margin:12px 0 20px; }
+.risk h2 { margin:0 0 4px; color:var(--navy); }
+.risk-critical { background:#ffe4e6; border-left-color:#e11d48; }
+.risk-high { background:#ffedd5; border-left-color:#ea580c; }
+.risk-moderate { background:#fef3c7; border-left-color:#ca8a04; }
+.metric { background:#f7fafc; border:1px solid var(--line); padding:14px; border-radius:10px; }
+.metric-label { color:var(--muted); font-size:.75rem; }
+.metric-value { color:var(--mint); font-size:1.3rem; font-weight:800; margin-top:3px; }
+.stButton > button[kind="primary"] { background:var(--mint); border:0; }
+.stButton > button[kind="primary"]:hover { background:#115e59; }
+.stTabs [data-baseweb="tab-list"] { gap:24px; }
+</style>
+""", unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------
-# 2. DATABASE INITIALIZATION (SQLite)
-# ---------------------------------------------------------
 def init_db():
-    conn = sqlite3.connect("rakshak_triage.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS call_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            language TEXT,
-            transcript TEXT,
-            svi_score REAL,
-            risk_category TEXT,
-            action_taken TEXT
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.execute("""CREATE TABLE IF NOT EXISTS call_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            language TEXT, transcript TEXT, svi_score REAL, risk_category TEXT, action_taken TEXT
+        )""")
+
+
+def save_log(result):
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.execute(
+            "INSERT INTO call_logs (language, transcript, svi_score, risk_category, action_taken) VALUES (?, ?, ?, ?, ?)",
+            (result["language"], result["transcript"], result["svi_score"], result["risk_level"], result["action_protocol"]),
         )
-    """)
-    conn.commit()
-    conn.close()
+
+
+def today_count():
+    with sqlite3.connect(DB_PATH) as connection:
+        return connection.execute("SELECT COUNT(*) FROM call_logs WHERE date(timestamp, 'localtime') = date('now', 'localtime')").fetchone()[0]
+
+
+@st.cache_resource
+def cached_model():
+    return load_speech_model()
+
+
+def analyze_audio(uploaded_file, language_hint):
+    suffix = Path(uploaded_file.name).suffix.lower() or ".wav"
+    with NamedTemporaryFile(prefix="rakshak_", suffix=suffix, delete=False) as temporary:
+        temporary.write(uploaded_file.getbuffer())
+        temporary_path = Path(temporary.name)
+    try:
+        return process_victim_voice(str(temporary_path), language_hint, cached_model())
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
 
 init_db()
+st.sidebar.markdown("## RAKSHAK AI")
+st.sidebar.caption("Response desk / voice intelligence")
+st.sidebar.markdown("---")
+st.sidebar.markdown(f"**Local time**  \n{datetime.now().astimezone().strftime('%d %b %Y · %H:%M:%S')}")
+st.sidebar.caption("Analysis decisions require human review")
+page = st.sidebar.radio("Workspace", ["Live triage", "Audit history"], label_visibility="collapsed")
+st.markdown('<div class="hero"><div class="eyebrow">National helpline response desk</div><h1>Make the next call count.</h1><p>Analyze a caller statement, surface urgency signals, and give the response team a clear brief for human review.</p></div>', unsafe_allow_html=True)
+status_columns = st.columns(3)
+status_columns[0].metric("Assessments today", today_count())
+status_columns[1].metric("Engine status", "READY")
+status_columns[2].metric("Review policy", "HUMAN-IN-LOOP")
 
+if page == "Live triage":
+    left, right = st.columns([1.35, 1], gap="large")
+    with left:
+        st.markdown('<div class="panel-title">01 / Intake</div>', unsafe_allow_html=True)
+        st.subheader("Start a caller assessment")
+        language_name = st.selectbox("Caller language", list(LANGUAGES))
+        input_mode = st.radio("Source", ["Upload file", "Record now"], horizontal=True)
+        if input_mode == "Upload file":
+            audio_file = st.file_uploader("Audio statement", type=["wav", "mp3", "ogg", "webm", "m4a", "aac"], max_upload_size=25)
+        else:
+            audio_file = st.audio_input("Record caller statement")
+        st.caption("Maximum 25 MB. Audio is processed temporarily and removed after analysis.")
+        if audio_file:
+            st.audio(audio_file)
+        run_analysis = st.button("Analyze statement", type="primary", disabled=audio_file is None, use_container_width=True)
+    with right:
+        st.markdown('<div class="panel-title">02 / Signal profile</div>', unsafe_allow_html=True)
+        st.subheader("Acoustic activity")
+        st.caption("The pitch contour appears here after analysis.")
+        if "last_result" in st.session_state:
+            latest = st.session_state["last_result"]
+            st.success(f"Last assessment: {latest['risk_level']} · {latest['processing_seconds']}s")
+            st.caption(f"Analyzed {latest['analyzed_at']} · {latest['duration_seconds']}s of audio")
+        else:
+            st.info("Awaiting an audio statement")
 
-def log_to_database(language, transcript, svi_score, risk_category, action_taken):
-    conn = sqlite3.connect("rakshak_triage.db")
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO call_logs (language, transcript, svi_score, risk_category, action_taken)
-        VALUES (?, ?, ?, ?, ?)
-    """,
-        (language, transcript, svi_score, risk_category, action_taken),
-    )
-    conn.commit()
-    conn.close()
-
-
-# ---------------------------------------------------------
-# 3. MODEL LOADING
-# ---------------------------------------------------------
-@st.cache_resource
-def load_speech_model():
-    return whisper.load_model("base")
-
-
-whisper_model = load_speech_model()
-
-
-# ---------------------------------------------------------
-# 4. CORE ENGINE (PITCH + TRANSCRIPTION + SVI LOGIC)
-# ---------------------------------------------------------
-def process_victim_voice(audio_path):
-    # Speech-to-Text & Translation via Whisper
-    transcription = whisper_model.transcribe(audio_path, task="translate")
-    detected_language = transcription.get("language", "unknown").upper()
-    english_transcript = transcription.get("text", "").strip()
-
-    # Acoustic Pitch & Tremor Analysis via Librosa
-    y, sr = librosa.load(audio_path, sr=None)
-    pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
-    pitch_values = pitches[pitches > 0]
-
-    if len(pitch_values) > 0:
-        mean_pitch = float(np.mean(pitch_values))
-        pitch_std = float(np.std(pitch_values))
-    else:
-        mean_pitch, pitch_std = 0.0, 0.0
-
-    # Calculate Acoustic Stress (0 - 100)
-    acoustic_stress_score = min(100.0, (pitch_std / 45.0) * 100)
-
-    # Keyword Detection
-    # ---------------------------------------------------------
-    # EXPANDED THREAT LEXICON (English + Transliterated Emergency Terms)
-    # ---------------------------------------------------------
-    threat_dictionary = [
-        # Direct Violence & Bodily Harm
-        "kill",
-        "killing",
-        "killer",
-        "murder",
-        "attack",
-        "attacking",
-        "attacked",
-        "blood",
-        "bleeding",
-        "bleed",
-        "stab",
-        "stabbing",
-        "stabbed",
-        "shoot",
-        "shooting",
-        "shot",
-        "gun",
-        "bullet",
-        "knife",
-        "weapon",
-        "bomb",
-        "choke",
-        "choking",
-        "hit",
-        "hitting",
-        "beat",
-        "beating",
-        "poison",
-        "drown",
-        # Coercion, Stalking & Captivity
-        "watching",
-        "watch",
-        "escape",
-        "trap",
-        "trapped",
-        "follow",
-        "following",
-        "kidnap",
-        "kidnapping",
-        "abduct",
-        "lock",
-        "locked",
-        "hostage",
-        "chase",
-        "chasing",
-        "forced",
-        "force",
-        # Abuse, Harassment & Distress Signals
-        "abuse",
-        "abusing",
-        "abusive",
-        "threat",
-        "threaten",
-        "threatening",
-        "harass",
-        "harassing",
-        "molest",
-        "rape",
-        "assault",
-        "torture",
-        "hurt",
-        "hurting",
-        "pain",
-        "die",
-        "dying",
-        "dead",
-        "death",
-        # Calls for Immediate Help & Emergency Responders
-        "help",
-        "save",
-        "police",
-        "cop",
-        "cops",
-        "pcr",
-        "ambulance",
-        "doctor",
-        "hospital",
-        "emergency",
-        "danger",
-        "dangerous",
-        "sos",
-        "rescue",
-        # Common Transliterated Crisis Terms
-        "bachao",
-        "mardo",
-        "marne",
-        "khoon",
-        "humla",
-        "banchao",
-        "chhadodu",
-        "champakandi",
-    ]
-
-    # Clean punctuation and normalize text to lowercase
-    clean_transcript = (
-        english_transcript.lower()
-        .replace(".", " ")
-        .replace(",", " ")
-        .replace("!", " ")
-        .replace("?", " ")
-        .replace("-", " ")
-    )
-    words_in_transcript = clean_transcript.split()
-
-    # Detect exact word matches OR root-word substring matches
-    detected_threats = []
-    for threat in threat_dictionary:
-        for word in words_in_transcript:
-            if threat in word and threat not in detected_threats:
-                detected_threats.append(threat)
-
-    # Calculate threat score based on flagged density
-    text_threat_score = min(100.0, len(detected_threats) * 30.0)
-    words_in_transcript = english_transcript.lower().split()
-    detected_threats = [
-        word for word in threat_dictionary if word in words_in_transcript
-    ]
-
-    text_threat_score = min(100.0, len(detected_threats) * 25.0)
-
-    # Final SVI Formula (40% Acoustic + 60% Textual)
-    svi_score = round(
-        (0.4 * acoustic_stress_score) + (0.6 * text_threat_score), 2
-    )
-
-    # Risk Categorization & Action Mapping
-    if svi_score >= 75:
-        risk_level = "CRITICAL RISK"
-        action_protocol = "IMMEDIATE POLICE INTERVENTION (PCR VAN DISPATCH) & DLSA LEGAL EMERGENCY ALERT"
-        css_class = "risk-critical"
-    elif svi_score >= 50:
-        risk_level = "HIGH RISK"
-        action_protocol = "CONNECT TO SENIOR PSYCHOLOGICAL COUNSELOR & DE-ESCALATION PFA PROTOCOL"
-        css_class = "risk-high"
-    elif svi_score >= 25:
-        risk_level = "MODERATE RISK"
-        action_protocol = "ASSIGN TO STANDARD COUNSELING QUEUE & SCHEDULER"
-        css_class = "risk-moderate"
-    else:
-        risk_level = "LOW RISK"
-        action_protocol = "PROVIDE AUTOMATED INFORMATION & SELF-GUIDANCE RESOURCES"
-        css_class = "risk-low"
-
-    return {
-        "language": detected_language,
-        "transcript": english_transcript,
-        "mean_pitch": round(mean_pitch, 2),
-        "pitch_std": round(pitch_std, 2),
-        "detected_threats": detected_threats,
-        "svi_score": svi_score,
-        "risk_level": risk_level,
-        "action_protocol": action_protocol,
-        "css_class": css_class,
-        "pitch_series": pitch_values[:150],
-    }
-
-
-# ---------------------------------------------------------
-# 5. UI LAYOUT & NAVIGATION
-# ---------------------------------------------------------
-st.title("🚨 Rakshak-AI: Crisis Triage & Response Portal")
-st.caption("National Helpline Crisis Engine (14566) | Powered by Whisper & Librosa")
-
-sidebar_option = st.sidebar.radio(
-    "Navigation Console", ["Live Victim Triage", "Historical Call Logs / Audit"]
-)
-
-# ---------------------------------------------------------
-# 6. PAGE 1: LIVE TRIAGE MODULE
-# ---------------------------------------------------------
-if sidebar_option == "Live Victim Triage":
-    st.subheader("1. Audio Input")
-
-    input_mode = st.radio(
-        "Choose Input Source:",
-        ["Upload Recorded Audio File", "Live Voice Input (Microphone)"],
-        horizontal=True,
-    )
-
-    audio_file_path = None
-
-    if input_mode == "Upload Recorded Audio File":
-        uploaded_file = st.file_uploader(
-            "Upload incoming victim call (.wav, .mp3)", type=["wav", "mp3"]
-        )
-        if uploaded_file:
-            audio_file_path = "temp_incoming.wav"
-            with open(audio_file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            st.audio(audio_file_path)
-
-    else:
-        audio_value = st.audio_input("Record victim statement live")
-        if audio_value:
-            audio_file_path = "temp_recorded.wav"
-            with open(audio_file_path, "wb") as f:
-                f.write(audio_value.read())
-
-    if audio_file_path and st.button("RUN TRIAGE ENGINE", type="primary"):
-        with st.spinner("Processing audio features..."):
-            results = process_victim_voice(audio_file_path)
-
-            log_to_database(
-                results["language"],
-                results["transcript"],
-                results["svi_score"],
-                results["risk_level"],
-                results["action_protocol"],
-            )
-
-            st.divider()
-
-            # Display Categorization and Action
-            st.subheader("2. Risk Assessment & Action Protocol")
-
-            st.markdown(
-                f"""
-                <div class="{results['css_class']}">
-                    <h2 style="margin:0;">CATEGORY: {results['risk_level']} (SVI: {results['svi_score']} / 100)</h2>
-                    <h4 style="margin-top:10px;">ACTION REQUIRED: {results['action_protocol']}</h4>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
-
-            st.write("")
-
-            # Display Metrics
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Detected Language", results["language"])
-            col2.metric("Mean Pitch", f"{results['mean_pitch']} Hz")
-            col3.metric("Voice Tremor Index", f"{results['pitch_std']}")
-            col4.metric(
-                "Threat Words Flagged", len(results["detected_threats"])
-            )
-
-            # Display Transcript
-            col_left, col_right = st.columns([2, 1])
-
-            with col_left:
-                st.subheader("3. Audio Transcript (English)")
-                st.info(
-                    results["transcript"]
-                    if results["transcript"]
-                    else "No clear speech recognized."
-                )
-
-            with col_right:
-                st.subheader("Detected Threat Words")
-                if results["detected_threats"]:
-                    for word in results["detected_threats"]:
-                        st.error(f"⚠️ Flagged: {word}")
-                else:
-                    st.success("No threat keywords flagged.")
-
-            # Display Pitch Graph
-            if len(results["pitch_series"]) > 0:
-                st.subheader("4. Vocal Pitch Contour Analysis")
-                fig = go.Figure()
-                fig.add_trace(
-                    go.Scatter(
-                        y=results["pitch_series"],
-                        mode="lines+markers",
-                        name="Frequency (Hz)",
-                        line=dict(color="#f97316", width=2),
-                    )
-                )
-                fig.update_layout(
-                    template="plotly_dark",
-                    xaxis_title="Frame Index",
-                    yaxis_title="Pitch (Hz)",
-                    height=280,
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-            if os.path.exists(audio_file_path):
-                os.remove(audio_file_path)
-
-# ---------------------------------------------------------
-# 7. PAGE 2: HISTORICAL LOGS MODULE
-# ---------------------------------------------------------
-elif sidebar_option == "Historical Call Logs / Audit":
-    st.subheader("📊 System Call Logs")
-
-    conn = sqlite3.connect("rakshak_triage.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM call_logs ORDER BY timestamp DESC")
-    records = cursor.fetchall()
-    conn.close()
-
-    if records:
-        for row in records:
-            with st.expander(
-                f"Call ID #{row[0]} | Timestamp: {row[1]} | Category: {row[5]}"
-            ):
-                st.write(f"**Language:** {row[2]}")
-                st.write(f"**SVI Score:** {row[4]} / 100")
-                st.write(f"**Action Executed:** {row[6]}")
-                st.write(f"**Transcript:** {row[3]}")
-    else:
-        st.info("No recorded triage calls found in the database yet.")
+    if run_analysis and audio_file:
+        if audio_file.size > MAX_UPLOAD_BYTES:
+            st.error("Audio files must be 25 MB or smaller.")
+        else:
+            with st.spinner("Transcribing and scoring the statement..."):
+                result = analyze_audio(audio_file, LANGUAGES[language_name])
+            result["analyzed_at"] = datetime.now().astimezone().strftime("%d %b %Y · %H:%M:%S")
+            st.session_state["last_result"] = result
+            save_log(result)
+            st.markdown('<div class="panel-title">03 / Response brief</div>', unsafe_allow_html=True)
+            risk_class = result["risk_level"].lower().replace(" risk", "")
+            st.markdown(f'<div class="risk risk-{risk_class}"><h2>{result["risk_level"]} · {result["svi_score"]} / 100</h2><div>{result["action_protocol"]}</div></div>', unsafe_allow_html=True)
+            metric_columns = st.columns(4)
+            metrics = [("Detected language", result["language_name"]), ("Audio duration", f'{result["duration_seconds"]} s'), ("Transcript confidence", f'{result["transcription_confidence"]}%'), ("Threat signals", len(result["detected_threats"]))]
+            for column, (label, value) in zip(metric_columns, metrics):
+                column.markdown(f'<div class="metric"><div class="metric-label">{label}</div><div class="metric-value">{value}</div></div>', unsafe_allow_html=True)
+            transcript_left, transcript_right = st.columns(2)
+            transcript_left.text_area("Original statement", result["source_transcript"] or "No clear speech recognized.", height=150, disabled=True)
+            transcript_right.text_area("English translation", result["english_transcript"] or "No translation available.", height=150, disabled=True)
+            st.caption(f"Mean pitch: {result['mean_pitch']} Hz · Tremor index: {result['pitch_std']} · Voiced frames: {result['voiced_frame_ratio']}% · Processed at {result['analyzed_at']}")
+            if result["detected_threats"]:
+                st.warning("Detected signals: " + ", ".join(result["detected_threats"]))
+            if result["pitch_series"]:
+                figure = go.Figure(go.Scatter(y=result["pitch_series"], mode="lines", line={"color": "#0f766e", "width": 3}))
+                figure.update_layout(height=250, margin={"l": 20, "r": 20, "t": 15, "b": 30}, template="plotly_white", yaxis_title="Hz", xaxis_title="Frame")
+                st.plotly_chart(figure, use_container_width=True)
+else:
+    st.markdown('<div class="panel-title">Audit history</div>', unsafe_allow_html=True)
+    st.subheader("Recent assessments")
+    with sqlite3.connect(DB_PATH) as connection:
+        records = connection.execute("SELECT * FROM call_logs ORDER BY timestamp DESC LIMIT 100").fetchall()
+    if not records:
+        st.info("No assessments have been logged yet.")
+    for record in records:
+        with st.expander(f"#{record[0]} · {record[1]} · {record[5]} · SVI {record[4]}"):
+            st.write(f"Language: {record[2]}")
+            st.write(f"Action: {record[6]}")
+            st.text(record[3])
