@@ -47,11 +47,6 @@
         Run Audio AI
       </button>
 
-      <button id="headerDbBtn" class="btn btn-secondary" style="border-color: rgba(56, 189, 248, 0.4); display: inline-flex; align-items: center; gap: 6px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-        <span>DB (<span id="headerDbCount">37</span>)</span>
-      </button>
-
       <div class="status-badge">
         <span class="pulse-dot"></span>
         <span>LIVE ENGINE ACTIVE</span>
@@ -140,10 +135,6 @@
     </button>
     <button class="view-tab" data-tab="tab-allinone">
       <span>ALL-IN-ONE COMMAND DESK</span>
-    </button>
-    <button class="view-tab" data-tab="tab-database">
-      <span>5. AUDIT HISTORY & DATABASE</span>
-      <span class="badge" id="tabDbBadge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">37 LOGS</span>
     </button>
   </nav>
 
@@ -1024,101 +1015,6 @@
       </div>
     </div>
 
-    <!-- ====================================================================
-         VIEW 6: AUDIT HISTORY & EMERGENCY TRIAGE DATABASE (Database & Logs)
-         ==================================================================== -->
-    <div id="tab-database" class="dashboard-view">
-      <div class="dashboard-title-banner">
-        <h1 class="dashboard-main-title">EMERGENCY TRIAGE DATABASE & AUDIT REGISTRY</h1>
-        <div class="dashboard-subtitle">
-          <span class="highlight-green">Verified Case History.</span> 
-          <span class="highlight-yellow">Forensic Voice Transcripts.</span> 
-          <span class="highlight-red">Persistent SVI Registry.</span>
-        </div>
-      </div>
-
-      <!-- KPI Statistics Cards -->
-      <div class="db-kpi-grid">
-        <div class="db-kpi-card">
-          <div class="db-kpi-label">TOTAL ASSESSMENTS LOGGED</div>
-          <div class="db-kpi-val" id="dbKpiTotal">37</div>
-          <div class="db-kpi-sub">Archived in persistent storage</div>
-        </div>
-        <div class="db-kpi-card db-card-critical">
-          <div class="db-kpi-label">CRITICAL RISK ALERTS</div>
-          <div class="db-kpi-val text-red" id="dbKpiCritical">1</div>
-          <div class="db-kpi-sub">Immediate police/PCR intervention</div>
-        </div>
-        <div class="db-kpi-card db-card-high">
-          <div class="db-kpi-label">HIGH RISK ESCALATIONS</div>
-          <div class="db-kpi-val text-orange" id="dbKpiHigh">19</div>
-          <div class="db-kpi-sub">PFA & senior counselor queue</div>
-        </div>
-        <div class="db-kpi-card db-card-moderate">
-          <div class="db-kpi-label">TODAY'S INTAKE</div>
-          <div class="db-kpi-val text-cyan" id="dbKpiToday">14</div>
-          <div class="db-kpi-sub">Active session records</div>
-        </div>
-      </div>
-
-      <!-- Database Controls & Filter Toolbar -->
-      <div class="db-toolbar">
-        <div class="db-search-group">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="dbSearchInput" placeholder="Search transcripts, dialects, call IDs...">
-        </div>
-
-        <div class="db-filter-group">
-          <select id="dbRiskFilter" class="scenario-select">
-            <option value="ALL">All Risk Levels</option>
-            <option value="CRITICAL">Critical Risk (SVI ≥ 75)</option>
-            <option value="HIGH">High Risk (SVI 50–74)</option>
-            <option value="MODERATE">Moderate / Standard (SVI < 50)</option>
-          </select>
-
-          <button id="exportCsvBtn" class="btn btn-secondary" title="Export Database as CSV">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Export CSV
-          </button>
-
-          <button id="exportJsonBtn" class="btn btn-secondary" title="Export Database as JSON">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            Export JSON
-          </button>
-
-          <button id="resetDbBtn" class="btn btn-secondary" style="color: #f87171; border-color: rgba(239, 68, 68, 0.3);" title="Reset Database to 37 Initial Forensic Records">
-            ↻ Reset Defaults
-          </button>
-        </div>
-      </div>
-
-      <!-- Real-time Database Table Card -->
-      <div class="card" style="margin-top: 14px; overflow: hidden;">
-        <div class="table-responsive">
-          <table class="db-table">
-            <thead>
-              <tr>
-                <th style="width: 70px;">ID</th>
-                <th style="width: 150px;">TIMESTAMP</th>
-                <th style="width: 90px;">DIALECT</th>
-                <th>CALLER TRANSCRIPT STATEMENT</th>
-                <th style="width: 100px;">SVI SCORE</th>
-                <th style="width: 160px;">RISK CATEGORY</th>
-                <th>ACTION PROTOCOL</th>
-                <th style="width: 120px; text-align: center;">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody id="dbTableBody">
-              <!-- Rendered dynamically by db.js & app.js -->
-            </tbody>
-          </table>
-        </div>
-        <div id="dbEmptyState" style="display: none; padding: 40px; text-align: center; color: var(--text-muted);">
-          No triage records match your query.
-        </div>
-      </div>
-    </div>
-
   </main>
 
   <!-- Upload / Mic Modal -->
@@ -1178,7 +1074,6 @@
     <div>⚖ This is a decision-support / triage aid, not a clinical diagnostic tool.</div>
   </footer>
 
-  <script src="/frontend/db.js"></script>
   <script src="/frontend/spectrogram.js"></script>
   <script src="/frontend/app.js"></script>
 </body>

@@ -2,9 +2,7 @@
   "version": 2,
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/api/scenarios/:id", "destination": "/api/scenarios?id=:id" },
     { "source": "/", "destination": "/frontend/index.html" },
-    { "source": "/frontend/(.*)", "destination": "/frontend/$1" },
-    { "source": "/translated_output.mp3", "destination": "/frontend/translated_output.mp3" }
+    { "source": "/frontend/(.*)", "destination": "/frontend/$1" }
   ]
 }

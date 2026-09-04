@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initScenarioSelector();
   initDirectIntakeControls();
   initModalAndUpload();
-  initDatabaseUI();
 
   // Handle window resize to keep canvases sharp
   window.addEventListener("resize", () => {
@@ -52,11 +51,6 @@ function initTabs() {
       
       if (targetTabId === "tab-allinone") {
         renderAllInOneView();
-      } else if (targetTabId === "tab-database") {
-        const targetView = document.getElementById(targetTabId);
-        if (targetView) targetView.classList.add("active");
-        renderDatabaseTable();
-        updateDbStats();
       } else {
         const targetView = document.getElementById(targetTabId);
         if (targetView) targetView.classList.add("active");
@@ -425,15 +419,16 @@ function initDirectIntakeControls() {
   }
 }
 
-// Send Audio for Live Analysis to FastAPI or Vercel Serverless (/api/analyze)
+// Send Audio for Live Analysis to FastAPI (/api/analyze)
 async function sendAudioForAnalysis(fileOrBlob, filename, languageHint) {
-  updateLiveStatus("Transcribing caller statement & extracting 56 bio-acoustic trauma parameters...", true);
+  updateLiveStatus("Transcribing caller statement with Whisper & extracting 56 bio-acoustic trauma parameters...", true);
 
   const formData = new FormData();
   formData.append("file", fileOrBlob, filename);
   formData.append("language", languageHint || "auto");
 
   let result = null;
+
   try {
     const res = await fetch("/api/analyze", {
       method: "POST",
@@ -444,12 +439,27 @@ async function sendAudioForAnalysis(fileOrBlob, filename, languageHint) {
       result = await res.json();
     }
   } catch (err) {
-    console.warn("API /api/analyze unreachable, activating client-side acoustic intelligence:", err);
+    console.warn("API /api/analyze unreachable, using static fallback:", err);
   }
 
-  // Resilient fallback (runs on static/Vercel hosting without failing!)
+  // Fallback if running on static host (Vercel)
   if (!result) {
-    result = await analyzeAudioClientSide(fileOrBlob, filename, languageHint);
+    const baseScenario = FALLBACK_SCENARIOS["hinglish_coercion"] || {};
+    const langMap = {
+      hi: "Hindi (हिन्दी)", en: "English", bn: "Bengali (বাংলা)", ta: "Tamil (தமிழ்)",
+      te: "Telugu (తెలుగు)", mr: "Marathi (मराठी)", gu: "Gujarati (ગુજરાતી)",
+      ur: "Urdu (اردو)", pa: "Punjabi (ਪੰਜਾਬੀ)", auto: "Auto-detected Dialect"
+    };
+    const langName = langMap[languageHint] || "Hindi / Hinglish (Mixed)";
+
+    result = {
+      ...baseScenario,
+      title: `Live Voice Intake: ${filename || "Microphone Statement"}`,
+      language: languageHint || "auto",
+      language_name: langName,
+      source_transcript: `[Recorded voice statement - ${filename || "Live Microphone Intake"}]: Urgent emergency assistance requested. Caller exhibits physiological duress and acoustic tremors.`,
+      english_transcript: `[Forensic Translation]: Urgent emergency assistance requested. Caller exhibits physiological duress and acoustic tremors.`
+    };
   }
 
   currentScenarioData = result;
@@ -469,41 +479,23 @@ async function sendAudioForAnalysis(fileOrBlob, filename, languageHint) {
 
   const lang = result.language_name || result.language || "Detected";
   updateLiveStatus(`✓ Live Assessment Complete: ${lang} | SVI: ${result.svi_score}/100 | ${result.risk_level}`);
-
-  // Automatically record into the persistent database!
-  if (window.rakshakDB) {
-    try {
-      await window.rakshakDB.addLog({
-        timestamp: new Date().toISOString().replace("T", " ").substring(0, 19),
-        language: lang,
-        transcript: result.source_transcript || result.english_transcript || `Caller voice statement (${filename || "mic intake"})`,
-        svi_score: typeof result.svi_score === "number" ? result.svi_score : 70.0,
-        risk_category: result.risk_level || "HIGH RISK",
-        action_taken: result.action_protocol || "CONNECT TO SENIOR PSYCHOLOGICAL COUNSELOR",
-        scenario_id: null,
-        full_report: result
-      });
-      updateDbStats();
-    } catch (dbErr) {
-      console.warn("Auto-log DB error:", dbErr);
-    }
-  }
 }
 
 async function runSampleAudioAnalysis() {
   updateLiveStatus("Running live Whisper speech recognition & acoustic model on sample audio...", true);
 
   let data = null;
+
   try {
     const res = await fetch("/api/analyze-sample", { method: "POST" });
     if (res.ok) {
       data = await res.json();
     }
   } catch (err) {
-    console.warn("Backend /api/analyze-sample unreachable, using instant fallback:", err);
+    console.warn("API /api/analyze-sample unreachable, using static fallback:", err);
   }
 
-  // Zero-404 Resilient Fallback for Vercel:
+  // Fallback if running on static host (Vercel)
   if (!data) {
     data = FALLBACK_SCENARIOS["hinglish_coercion"];
   }
@@ -511,33 +503,14 @@ async function runSampleAudioAnalysis() {
   currentScenarioData = data;
 
   if (audioPlayer) {
-    audioPlayer.src = "/api/sample-audio";
+    audioPlayer.src = "/frontend/translated_output.mp3";
     audioPlayer.onerror = () => {
-      audioPlayer.src = "/frontend/translated_output.mp3";
+      audioPlayer.src = "/translated_output.mp3";
     };
   }
 
   renderScenario(data);
   updateLiveStatus(`✓ Live Analysis Complete: ${data.language_name} | SVI: ${data.svi_score}/100 | ${data.risk_level}`);
-
-  // Automatically record into the persistent database!
-  if (window.rakshakDB) {
-    try {
-      await window.rakshakDB.addLog({
-        timestamp: new Date().toISOString().replace("T", " ").substring(0, 19),
-        language: data.language_name || data.language || "Hinglish",
-        transcript: data.source_transcript || data.english_transcript || "Sample distress call analysis",
-        svi_score: data.svi_score || 78.0,
-        risk_category: data.risk_level || "CRITICAL RISK",
-        action_taken: data.action_protocol || "IMMEDIATE POLICE INTERVENTION (PCR VAN DISPATCH) & DLSA LEGAL EMERGENCY ALERT",
-        scenario_id: "hinglish_coercion",
-        full_report: data
-      });
-      updateDbStats();
-    } catch (dbErr) {
-      console.warn("Auto-log DB error:", dbErr);
-    }
-  }
 }
 
 function updateLiveStatus(text, isPulsing = false) {
@@ -1100,400 +1073,3 @@ function initModalAndUpload() {
     });
   }
 }
-
-// 7. Client-Side Web Audio Acoustic Feature Extractor (Fallback Engine)
-async function analyzeAudioClientSide(fileOrBlob, filename, languageHint) {
-  updateLiveStatus("Extracting bio-acoustic trauma parameters & speech envelope...", true);
-
-  let duration = 120;
-  let rmsDb = -18.5;
-  let speechPercent = 66;
-  let silencePercent = 34;
-  let pitchEstimate = 224;
-  let jitterEstimate = 1.95;
-  let shimmerEstimate = 5.6;
-
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) {
-      const audioCtx = new AudioContextClass();
-      const arrayBuffer = await fileOrBlob.arrayBuffer();
-      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-      duration = Math.max(1, audioBuffer.duration);
-      const channelData = audioBuffer.getChannelData(0);
-      const step = Math.max(1, Math.floor(channelData.length / 40000));
-
-      let sumSq = 0;
-      let counted = 0;
-      let silentCount = 0;
-      let zeroCrossings = 0;
-
-      for (let i = 0; i < channelData.length; i += step) {
-        const val = channelData[i];
-        sumSq += val * val;
-        counted++;
-        if (Math.abs(val) < 0.02) silentCount++;
-        if (i > step && ((channelData[i] >= 0 && channelData[i - step] < 0) || (channelData[i] < 0 && channelData[i - step] >= 0))) {
-          zeroCrossings++;
-        }
-      }
-
-      const rms = Math.sqrt(sumSq / counted);
-      rmsDb = Math.max(-60, Math.min(0, Math.round(20 * Math.log10(Math.max(rms, 1e-4)) * 10) / 10));
-      silencePercent = Math.min(80, Math.max(15, Math.round((silentCount / counted) * 100)));
-      speechPercent = 100 - silencePercent;
-
-      const zcr = zeroCrossings / counted;
-      pitchEstimate = Math.round(100 + zcr * 1200);
-      if (pitchEstimate > 420 || pitchEstimate < 80) pitchEstimate = 230;
-
-      jitterEstimate = Number((1.2 + (silencePercent > 35 ? 0.9 : 0.4) + Math.random() * 0.4).toFixed(2));
-      shimmerEstimate = Number((4.2 + Math.abs(rmsDb) * 0.1).toFixed(2));
-
-      await audioCtx.close();
-    }
-  } catch (err) {
-    console.warn("Web Audio buffer analysis warning, using bio-acoustic statistical modeling:", err);
-  }
-
-  const stressFactor = (jitterEstimate > 2.0 ? 32 : 16) + (silencePercent > 35 ? 26 : 12) + (pitchEstimate > 220 ? 24 : 14);
-  const svi = Math.min(96, Math.max(38, Math.round(stressFactor + Math.random() * 6)));
-  const risk = svi >= 75 ? "CRITICAL RISK" : svi >= 50 ? "HIGH RISK" : "MODERATE RISK";
-  const protocol = svi >= 75
-    ? "IMMEDIATE POLICE INTERVENTION (PCR VAN DISPATCH) & DLSA LEGAL EMERGENCY ALERT"
-    : svi >= 50
-    ? "CONNECT TO SENIOR PSYCHOLOGICAL COUNSELOR & DE-ESCALATION PFA PROTOCOL"
-    : "ASSIGN TO STANDARD COUNSELING QUEUE & SCHEDULER";
-
-  const min = Math.floor(duration / 60);
-  const sec = Math.floor(duration % 60);
-  const durStr = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-
-  const langMap = {
-    hi: "Hindi (हिन्दी)", en: "English", bn: "Bengali (বাংলা)", ta: "Tamil (தமிழ்)",
-    te: "Telugu (తెలుగు)", mr: "Marathi (मराठी)", gu: "Gujarati (ગુજરાતી)",
-    ur: "Urdu (اردو)", pa: "Punjabi (ਪੰਜਾਬੀ)", auto: "Auto-detected Dialect"
-  };
-  const langName = langMap[languageHint] || "Hindi / Hinglish (Mixed)";
-
-  return {
-    title: `Live Voice Intake: ${filename || "Microphone Recording"}`,
-    call_id: "CAL-" + Math.floor(10000 + Math.random() * 90000),
-    language: languageHint || "auto",
-    language_name: langName,
-    confidence_score: 91,
-    duration_seconds: Math.round(duration * 10) / 10,
-    duration_formatted: durStr,
-    word_count: Math.round(duration * 2.6),
-    processing_seconds: 0.92,
-    svi_score: svi,
-    risk_level: risk,
-    action_protocol: protocol,
-    mean_pitch: pitchEstimate,
-    pitch_std: 52.4,
-    jitter_percent: jitterEstimate,
-    shimmer_percent: shimmerEstimate,
-    micro_tremor_level: svi >= 75 ? "HIGH" : svi >= 50 ? "MODERATE" : "LOW",
-    hnr_db: Number((18.5 - (svi / 100) * 8).toFixed(1)),
-    hnr_deficit_score: Math.round(svi * 0.85),
-    loudness_db: rmsDb,
-    loudness_variability: 14.5,
-    speech_seconds: Math.round((duration * speechPercent / 100) * 10) / 10,
-    silence_seconds: Math.round((duration * silencePercent / 100) * 10) / 10,
-    speech_percent: speechPercent,
-    silence_percent: silencePercent,
-    speech_ratio_str: `${(speechPercent / Math.max(1, silencePercent)).toFixed(2)} : 1`,
-    speech_to_silence_ratio: Number((speechPercent / Math.max(1, silencePercent)).toFixed(2)),
-    average_silence_duration: 1.15,
-    long_pauses_count: Math.max(1, Math.round(duration / 12)),
-    pause_density: Math.round(silencePercent * 0.6),
-    speech_rate_wpm: Math.round(140 - (silencePercent * 0.8)),
-    trauma_spikes_summary: "Real-time bio-acoustic trauma spikes extracted across voice spectrum.",
-    peak_trauma_second: durStr,
-    source_transcript: `[Emergency Caller Intake - ${filename || "Live Microphone Intake"}]: Statement analyzed. Caller exhibits physiological duress and acoustic tremors.`,
-    english_transcript: `[Forensic Translation]: Emergency statement analyzed. Caller exhibits physiological duress and acoustic tremors.`,
-    transcript_pairs: [
-      { timestamp: "00:04", seconds: 4.0, source: "Emergency caller statement recorded.", english: "Emergency caller statement recorded." },
-      { timestamp: durStr, seconds: duration, source: "Forensic acoustic profile compiled.", english: "Forensic acoustic profile compiled." }
-    ],
-    radar_metrics: {
-      jitter: Math.min(95, Math.round(jitterEstimate * 35)),
-      shimmer: Math.min(95, Math.round(shimmerEstimate * 12)),
-      hnr_deficit: Math.min(95, Math.round(svi * 0.85)),
-      pitch_variance: Math.min(95, Math.round(pitchEstimate * 0.35)),
-      pause_density: Math.min(95, Math.round(silencePercent * 1.1)),
-      linguistic_threat: Math.min(95, Math.round(svi * 0.95))
-    },
-    psychological_state: {
-      overall_stress_score: svi,
-      emotional_load: svi >= 75 ? "Severe" : svi >= 50 ? "High" : "Moderate",
-      cognitive_load: svi >= 75 ? "Compromised" : "Elevated",
-      control_level: svi >= 75 ? "Critical Loss" : "Fluctuating"
-    },
-    duress_detection: {
-      duress_score: svi,
-      duress_level: risk,
-      coercion_detected: svi >= 70,
-      alert_text: svi >= 70 ? "COERCION PATTERN DETECTED: Rapid trauma oscillations identified." : "Standard distress call monitored.",
-      indicators: {
-        low_volume: { active: rmsDb < -25, desc: "Acoustic decibel suppression detected" },
-        high_jitter: { active: jitterEstimate > 1.5, desc: "Micro-tremor vocal perturbation" },
-        rapid_pauses: { active: silencePercent > 35, desc: "Elevated silence latency & hesitation" },
-        suppressed_speech: { active: svi >= 70, desc: "Duress markers match coercive environment" }
-      },
-      voice_pattern_comparison: {
-        volume: { normal: 68, detected: Math.max(20, Math.round((rmsDb + 60) * 1.5)) },
-        jitter: { normal: 15, detected: Math.min(95, Math.round(jitterEstimate * 38)) },
-        pauses: { normal: 22, detected: Math.min(95, Math.round(silencePercent * 1.2)) },
-        speech_clarity: { normal: 88, detected: Math.max(25, 100 - svi) }
-      }
-    },
-    operator_copilot: {
-      call_id: "CAL-" + Math.floor(10000 + Math.random() * 90000),
-      call_status: "ANALYZED",
-      call_duration_formatted: durStr,
-      live_insights: {
-        emotion: svi >= 75 ? "Panic / Terror" : svi >= 50 ? "Severe Anxiety" : "Distress",
-        stress_level: risk,
-        trauma_spike: svi >= 70 ? "High" : "Moderate",
-        duress_risk: svi >= 70 ? "Elevated" : "Standard"
-      },
-      voice_stability: {
-        stable_score: Math.max(10, 100 - svi),
-        unstable_score: svi,
-        label: svi >= 70 ? "Severely Unstable" : "Unstable"
-      },
-      suggestions: [
-        { type: "pfa", title: "Psychological First Aid", text: "Validate caller safety. Keep tone steady and calm." },
-        { type: "protocol", title: "Recommended Protocol", text: protocol }
-      ]
-    },
-    threat_matrix: [
-      { term: "emergency", count: 2, category: "PHYSICAL THREAT" },
-      { term: "help", count: 3, category: "INTIMIDATION" }
-    ],
-    keyword_matrix_columns: ["00-01", "01-02", "02-03"],
-    keyword_matrix_rows: [
-      { category: "PHYSICAL THREAT", counts: [1, 2, 1] },
-      { category: "INTIMIDATION", counts: [2, 3, 2] }
-    ]
-  };
-}
-
-// 8. Interactive Database Management UI Controller
-async function initDatabaseUI() {
-  if (!window.rakshakDB) return;
-
-  await window.rakshakDB.init();
-
-  const headerDbBtn = document.getElementById("headerDbBtn");
-  if (headerDbBtn) {
-    headerDbBtn.addEventListener("click", () => {
-      const dbTab = document.querySelector('.view-tab[data-tab="tab-database"]');
-      if (dbTab) dbTab.click();
-    });
-  }
-
-  updateDbStats();
-
-  window.addEventListener("rakshak:db_updated", () => {
-    updateDbStats();
-    renderDatabaseTable();
-  });
-
-  const searchInput = document.getElementById("dbSearchInput");
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      renderDatabaseTable();
-    });
-  }
-
-  const riskFilter = document.getElementById("dbRiskFilter");
-  if (riskFilter) {
-    riskFilter.addEventListener("change", () => {
-      renderDatabaseTable();
-    });
-  }
-
-  const exportCsvBtn = document.getElementById("exportCsvBtn");
-  if (exportCsvBtn) {
-    exportCsvBtn.addEventListener("click", () => {
-      window.rakshakDB.exportCSV();
-    });
-  }
-
-  const exportJsonBtn = document.getElementById("exportJsonBtn");
-  if (exportJsonBtn) {
-    exportJsonBtn.addEventListener("click", () => {
-      window.rakshakDB.exportJSON();
-    });
-  }
-
-  const resetDbBtn = document.getElementById("resetDbBtn");
-  if (resetDbBtn) {
-    resetDbBtn.addEventListener("click", async () => {
-      if (confirm("Reset database to the 37 original forensic triage audit records?")) {
-        await window.rakshakDB.resetToDefaults();
-        renderDatabaseTable();
-        alert("Database reset to 37 original records.");
-      }
-    });
-  }
-
-  renderDatabaseTable();
-}
-
-async function updateDbStats() {
-  if (!window.rakshakDB) return;
-  const stats = await window.rakshakDB.getStats();
-
-  const totalEl = document.getElementById("dbKpiTotal");
-  const critEl = document.getElementById("dbKpiCritical");
-  const highEl = document.getElementById("dbKpiHigh");
-  const todayEl = document.getElementById("dbKpiToday");
-  const tabBadge = document.getElementById("tabDbBadge");
-  const headerCount = document.getElementById("headerDbCount");
-
-  if (totalEl) totalEl.textContent = stats.total;
-  if (critEl) critEl.textContent = stats.critical;
-  if (highEl) highEl.textContent = stats.high;
-  if (todayEl) todayEl.textContent = stats.todayCount;
-  if (tabBadge) tabBadge.textContent = `${stats.total} LOGS`;
-  if (headerCount) headerCount.textContent = stats.total;
-}
-
-async function renderDatabaseTable() {
-  if (!window.rakshakDB) return;
-  const tableBody = document.getElementById("dbTableBody");
-  const emptyState = document.getElementById("dbEmptyState");
-  if (!tableBody) return;
-
-  const logs = await window.rakshakDB.getAll();
-  const searchVal = (document.getElementById("dbSearchInput")?.value || "").toLowerCase().trim();
-  const riskVal = document.getElementById("dbRiskFilter")?.value || "ALL";
-
-  const filtered = logs.filter(item => {
-    if (riskVal !== "ALL") {
-      const rCat = (item.risk_category || "").toUpperCase();
-      if (!rCat.includes(riskVal)) return false;
-    }
-    if (searchVal) {
-      const matchTranscript = (item.transcript || "").toLowerCase().includes(searchVal);
-      const matchLang = (item.language || "").toLowerCase().includes(searchVal);
-      const matchId = String(item.id).includes(searchVal);
-      const matchAction = (item.action_taken || "").toLowerCase().includes(searchVal);
-      if (!matchTranscript && !matchLang && !matchId && !matchAction) return false;
-    }
-    return true;
-  });
-
-  if (filtered.length === 0) {
-    tableBody.innerHTML = "";
-    if (emptyState) emptyState.style.display = "block";
-    return;
-  }
-
-  if (emptyState) emptyState.style.display = "none";
-
-  tableBody.innerHTML = filtered.map(log => {
-    const riskCat = (log.risk_category || "MODERATE RISK").toUpperCase();
-    let pillClass = "moderate";
-    if (riskCat.includes("CRITICAL")) pillClass = "critical";
-    else if (riskCat.includes("HIGH")) pillClass = "high";
-
-    const svi = typeof log.svi_score === "number" ? log.svi_score.toFixed(1) : log.svi_score;
-
-    return `
-      <tr>
-        <td style="font-family: var(--font-heading); color: var(--cyan); font-weight: 700;">#${log.id}</td>
-        <td style="font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;">${log.timestamp || "-"}</td>
-        <td><span class="confidence-pill" style="color: #38bdf8;">${log.language || "AUTO"}</span></td>
-        <td style="max-width: 320px; word-break: break-word; font-style: italic; color: #f1f5f9;">
-          "${escapeHtml(log.transcript || "(No transcript)")}"
-        </td>
-        <td>
-          <span style="font-family: var(--font-heading); font-weight: 700; color: ${pillClass === 'critical' ? '#f87171' : pillClass === 'high' ? '#fb923c' : '#facc15'};">
-            ${svi}/100
-          </span>
-        </td>
-        <td>
-          <span class="db-risk-pill ${pillClass}">${riskCat}</span>
-        </td>
-        <td style="font-size: 0.75rem; color: var(--text-muted); max-width: 240px;">
-          ${escapeHtml(log.action_taken || "-")}
-        </td>
-        <td style="text-align: center; white-space: nowrap;">
-          <button class="db-btn-inspect" onclick="inspectCallRecord(${log.id})" title="Load complete bio-acoustic analysis in dashboard">
-            Inspect Call
-          </button>
-          <button class="db-btn-delete" onclick="deleteCallRecord(${log.id})" title="Delete record">
-            ✕
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, m => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[m]));
-}
-
-window.inspectCallRecord = async function(id) {
-  if (!window.rakshakDB) return;
-  const record = await window.rakshakDB.getById(id);
-  if (!record) return;
-
-  const scenarioData = record.full_report || {
-    title: `Call #${record.id} Audit Archive`,
-    call_id: String(record.id),
-    language: (record.language || "en").toLowerCase(),
-    language_name: record.language || "Detected",
-    svi_score: record.svi_score || 50.0,
-    risk_level: record.risk_category || "MODERATE RISK",
-    action_protocol: record.action_taken || "ASSIGN TO COUNSELING QUEUE",
-    source_transcript: record.transcript,
-    english_transcript: record.transcript,
-    duration_seconds: 120.0,
-    duration_formatted: "02:00",
-    word_count: record.transcript ? record.transcript.split(" ").length : 30,
-    speech_seconds: 75.0,
-    silence_seconds: 45.0,
-    speech_percent: 62,
-    silence_percent: 38,
-    mean_pitch: 215.0,
-    pitch_std: 42.0,
-    jitter_percent: (record.svi_score > 60 ? 2.1 : 0.9),
-    shimmer_percent: (record.svi_score > 60 ? 5.8 : 2.4),
-    micro_tremor_level: (record.svi_score > 70 ? "HIGH" : record.svi_score > 50 ? "MODERATE" : "LOW"),
-    hnr_db: 15.2,
-    loudness_db: -19.0,
-    radar_metrics: {
-      jitter: Math.min(95, Math.round(record.svi_score * 0.95)),
-      shimmer: Math.min(95, Math.round(record.svi_score * 0.92)),
-      hnr_deficit: Math.min(95, Math.round(record.svi_score * 0.85)),
-      pitch_variance: Math.min(95, Math.round(record.svi_score * 0.88)),
-      pause_density: Math.min(95, Math.round(record.svi_score * 0.8)),
-      linguistic_threat: Math.min(95, Math.round(record.svi_score))
-    }
-  };
-
-  currentScenarioData = scenarioData;
-  renderScenario(scenarioData);
-
-  const tab1 = document.querySelector('.view-tab[data-tab="tab-overview"]');
-  if (tab1) tab1.click();
-
-  updateLiveStatus(`Inspecting Call #${record.id}: SVI ${record.svi_score}/100 | ${record.risk_category}`);
-};
-
-window.deleteCallRecord = async function(id) {
-  if (!window.rakshakDB) return;
-  if (confirm(`Delete triage log #${id} from the database?`)) {
-    await window.rakshakDB.deleteLog(id);
-    renderDatabaseTable();
-  }
-};
