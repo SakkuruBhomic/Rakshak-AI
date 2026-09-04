@@ -7,3 +7,4 @@ __pycache__/
 node_modules/
 .vercel
 push_to_github.bat
+run_localhost.bat
