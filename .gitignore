@@ -4,4 +4,6 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
-node_modules/git
+node_modules/
+.vercel
+push_to_github.bat
